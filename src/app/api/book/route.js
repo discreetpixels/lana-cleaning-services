@@ -22,6 +22,15 @@ const PACKAGE_NAMES = {
   'off-s':    'Studio/Creative Care',
 };
 
+const PACKAGE_PRICES = {
+  '2h':       95,
+  'move-out': 450,
+  'reg':      160,
+  'deep':     350,
+  'off-e':    250,
+  'off-s':    180,
+};
+
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -184,6 +193,29 @@ export async function POST(request) {
       console.log("Confirmation email sent.");
     } catch (emailErr) {
       console.error("Email Error:", emailErr);
+    }
+
+    // 4. WhatsApp Notification via Make.com
+    const webhookUrl = process.env.MAKE_WEBHOOK_URL;
+    if (webhookUrl) {
+      try {
+        const price = PACKAGE_PRICES[pkgId] || '0';
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_type: 'new_booking',
+            name, email, phone, address,
+            package: packageName,
+            price: `$${price}`,
+            date, time,
+            booking_id: bookingId
+          }),
+        });
+        console.log("Make.com Webhook triggered.");
+      } catch (webhookErr) {
+        console.error("Make.com Webhook Error:", webhookErr);
+      }
     }
 
     return NextResponse.json({ success: true, bookingId });
