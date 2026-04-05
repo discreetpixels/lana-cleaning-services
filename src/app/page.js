@@ -7,6 +7,7 @@ import BookingSystem from '@/components/BookingSystem';
 export default function Home() {
   const services = [
     {
+      id: "2h",
       title: "2-Hour Quick Refresh",
       duration: "2 Hours",
       description: "A focused, efficient cleaning of essential living spaces. Ideal for maintaining a high standard between standard visits.",
@@ -14,6 +15,7 @@ export default function Home() {
       category: "Personal"
     },
     {
+      id: "move-out",
       title: "Move-Out Deep Clean",
       duration: "6 - 8 Hours",
       description: "A comprehensive, top-to-bottom transformation designed for transitions. We handle every surface to ensure your old or new home is immaculate.",
@@ -22,6 +24,7 @@ export default function Home() {
       category: "Personal"
     },
     {
+      id: "reg",
       title: "Regular Maintenance",
       duration: "3 - 4 Hours",
       description: "Steadfast care for your home on a weekly or bi-weekly basis. Professionalism meet personal attention for a consistently fresh life.",
@@ -29,6 +32,7 @@ export default function Home() {
       category: "Personal"
     },
     {
+      id: "deep",
       title: "Deep Detailed Clean",
       duration: "5 - 6 Hours",
       description: "The peak of cleaning excellence. Every corner, baseboard, and intricate detail is sanitized and polished to perfection.",
@@ -36,6 +40,7 @@ export default function Home() {
       category: "Personal"
     },
     {
+      id: "off-e",
       title: "Executive Office Clean",
       duration: "4 Hours",
       description: "Elevate your professional space. We handle high-traffic areas, shared spaces, and personal offices with impeccable discretion and care.",
@@ -43,6 +48,7 @@ export default function Home() {
       category: "Office"
     },
     {
+      id: "off-s",
       title: "Studio/Creative Care",
       duration: "3 Hours",
       description: "Tailored for creative environments. We sanitize your workspace while respecting the flow of your professional tools and equipment.",
@@ -137,7 +143,7 @@ export default function Home() {
             <div style={{ textAlign: 'center', marginBottom: '8rem' }}>
               <p style={{ textTransform: 'uppercase', letterSpacing: '0.25em', fontSize: '0.8rem', fontWeight: '900', color: 'var(--accent-primary)', marginBottom: '1rem' }}>Reservations</p>
               <h2 style={{ fontSize: '4.5rem' }}>Book Your Appointment</h2>
-              <p style={{ maxWidth: '650px', margin: '0 auto', fontSize: '1.125rem' }}>Secure your preferred timestamp. Login with your Google account for an integrated experience.</p>
+              <p style={{ maxWidth: '650px', margin: '0 auto', fontSize: '1.125rem' }}>Secure your preferred timestamp. We handle everything else from there.</p>
             </div>
             
             <div className="card" style={{ maxWidth: '1100px', margin: '0 auto', padding: '0', border: 'none', boxShadow: 'var(--shadow-lg)' }}>

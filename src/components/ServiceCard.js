@@ -1,6 +1,6 @@
 'use client';
 
-export default function ServiceCard({ title, duration, description, price, highlight, category }) {
+export default function ServiceCard({ id, title, duration, description, price, highlight, category }) {
   return (
     <div className={`card ${highlight ? 'highlight' : ''}`} style={{ 
       display: 'flex', 
@@ -59,7 +59,7 @@ export default function ServiceCard({ title, duration, description, price, highl
           <span style={{ fontSize: '1rem', verticalAlign: 'top', marginRight: '4px' }}>$</span>
           {price.replace('$', '')}
         </div>
-        <a href="#booking" className="btn btn-primary" style={{ width: '100%' }}>Book Reservation</a>
+        <a href={`?package=${id}#booking`} className="btn btn-primary" style={{ width: '100%', textAlign: 'center', display: 'block' }}>Book Reservation</a>
       </div>
 
       <style jsx>{`

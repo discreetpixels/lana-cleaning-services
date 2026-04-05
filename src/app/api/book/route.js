@@ -120,8 +120,8 @@ export async function POST(request) {
       console.warn("No Google Auth tokens found in admin_settings table.");
     }
 
-    // 2. Save to Supabase
-    const { data: booking, error: dbError } = await supabaseAdmin
+    // 2. Save to Supabase (Harden this to ensure we get the ID)
+    const { data: bookingDataArray, error: dbError } = await supabaseAdmin
       .from('bookings')
       .insert({
         name, email, phone, package: pkgId,
@@ -129,17 +129,21 @@ export async function POST(request) {
         status: 'confirmed',
         google_calendar_event_id: calendarEventId,
       })
-      .select()
-      .single();
+      .select();
 
     if (dbError) {
       console.error("Supabase insert error:", dbError);
     }
 
-    const bookingId = booking?.id;
-    const manageUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/booking/${bookingId}`;
+    const savedBooking = (bookingDataArray && bookingDataArray.length > 0) ? bookingDataArray[0] : null;
+    const bookingId = savedBooking?.id;
+    
+    console.log("Booking saved in DB. ID:", bookingId);
+
+    const manageUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/booking/${bookingId || ''}`;
 
     // 3. Email Confirmation (Gmail SMTP)
+    // ... (rest of transporter setup remains same) ...
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: parseInt(process.env.EMAIL_PORT),
@@ -154,7 +158,7 @@ export async function POST(request) {
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1C1C1C; background-color: #FDFCF5; padding: 40px; border: 1px solid #E5E2D0;">
         <h1 style="font-size: 24px; border-bottom: 1px solid #E5E2D0; padding-bottom: 20px; font-weight: 900; letter-spacing: -0.05em;">LANA CLEANING SERVICES</h1>
         <p style="font-size: 16px; line-height: 1.6; margin-top: 30px;">Dear ${name},</p>
-        <p style="font-size: 16px; line-height: 1.6;">Your reservation for <strong>${packageName}</strong> has been confirmed. We look forward to bringing our personal touch to your space.</p>
+        <p style="font-size: 16px; line-height: 1.6;">Your reservation for <strong>${packageName}</strong> has been confirmed.</p>
         
         <div style="background-color: #F7F6EF; padding: 30px; margin: 30px 0; border: 1px solid #E5E2D0;">
           <h3 style="margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; color: #2D5A27;">Appointment Details</h3>
@@ -165,21 +169,14 @@ export async function POST(request) {
           <p style="margin: 10px 0;"><strong>Reference #:</strong> ${bookingId?.slice(0, 8).toUpperCase() || 'N/A'}</p>
         </div>
 
-        ${bookingId ? `
         <div style="text-align: center; margin: 30px 0;">
           <a href="${manageUrl}" style="display: inline-block; background-color: #2D5A27; color: white; padding: 14px 32px; text-decoration: none; font-weight: 700; letter-spacing: 0.05em; font-size: 14px;">
             MANAGE MY BOOKING
           </a>
-          <p style="font-size: 12px; color: #888; margin-top: 10px;">Reschedule or cancel your appointment</p>
         </div>
-        ` : ''}
 
         <p style="font-size: 14px; color: #4A4A4A;">Questions? Reply to this email or call us directly.</p>
         <p style="margin-top: 40px; font-size: 16px;">Best regards,<br/><strong>The Lana Team</strong></p>
-        
-        <div style="margin-top: 60px; font-size: 12px; color: #AAA; text-align: center; border-top: 1px solid #EEE; padding-top: 20px;">
-          &copy; 2026 Lana Cleaning Services. All rights reserved.
-        </div>
       </div>
     `;
 
@@ -190,29 +187,38 @@ export async function POST(request) {
         subject: `Reservation Confirmed: ${date} @ ${time}`,
         html: emailHtml,
       });
-      console.log("Confirmation email sent.");
     } catch (emailErr) {
       console.error("Email Error:", emailErr);
     }
 
-    // 4. WhatsApp Notification via Make.com
+    // 4. WhatsApp/Telegram Notification via Make.com
     const webhookUrl = process.env.MAKE_WEBHOOK_URL;
     if (webhookUrl) {
       try {
         const price = PACKAGE_PRICES[pkgId] || '0';
-        await fetch(webhookUrl, {
+        const webhookPayload = {
+          event_type: 'new_booking',
+          name: name,
+          email: email,
+          phone: phone,
+          address: address,
+          package: packageName,
+          price: `$${price}`,
+          date: date,
+          time: time,
+          booking_id: bookingId || 'N/A',
+          manage_url: manageUrl
+        };
+
+        console.log("Sending Webhook to Make.com:", JSON.stringify(webhookPayload, null, 2));
+
+        const webhookRes = await fetch(webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            event_type: 'new_booking',
-            name, email, phone, address,
-            package: packageName,
-            price: `$${price}`,
-            date, time,
-            booking_id: bookingId
-          }),
+          body: JSON.stringify(webhookPayload),
         });
-        console.log("Make.com Webhook triggered.");
+        
+        console.log("Make.com Webhook response status:", webhookRes.status);
       } catch (webhookErr) {
         console.error("Make.com Webhook Error:", webhookErr);
       }

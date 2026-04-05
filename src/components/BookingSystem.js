@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Calendar as CalendarIcon, Package, User, ArrowRight, CheckCircle2, Mail, Phone, MapPin } from 'lucide-react';
 import Calendar from '@/components/Calendar';
 
-export default function BookingSystem() {
+function BookingContent() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [busySlots, setBusySlots] = useState({});
+  const searchParams = useSearchParams();
   
   const [bookingData, setBookingData] = useState({
     date: null,
@@ -40,6 +42,22 @@ export default function BookingSystem() {
     '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM'
   ];
 
+  // Handle URL package selection
+  useEffect(() => {
+    const pkgFromUrl = searchParams.get('package');
+    if (pkgFromUrl) {
+      const pkgExists = packages.find(p => p.id === pkgFromUrl);
+      if (pkgExists) {
+        setBookingData(prev => ({ ...prev, package: pkgFromUrl }));
+        setStep(2);
+        const bookingSection = document.getElementById('booking');
+        if (bookingSection) {
+          bookingSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }
+  }, [searchParams]);
+
   // Fetch availability when on schedule step
   useEffect(() => {
     if (step === 2) {
@@ -55,21 +73,6 @@ export default function BookingSystem() {
       fetchAvailability();
     }
   }, [step]);
-
-  const nextStep = () => {
-    if (step === 1 && bookingData.package) setStep(2);
-    else if (step === 2 && bookingData.date && bookingData.time) setStep(3);
-  };
-
-  const prevStep = () => setStep(s => Math.max(s - 1, 1));
-
-  const handlePackageSelect = (pkg) => {
-    setBookingData({ ...bookingData, package: pkg });
-    setStep(2);
-  };
-
-  const handleDateSelect = (date) => setBookingData({ ...bookingData, date, time: '' });
-  const handleTimeSelect = (time) => setBookingData({ ...bookingData, time });
 
   const handleFormSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -91,8 +94,15 @@ export default function BookingSystem() {
     }
   };
 
+  const nextStep = () => {
+    if (step === 1 && bookingData.package) setStep(2);
+    else if (step === 2 && bookingData.date && bookingData.time) setStep(3);
+  };
+
+  const prevStep = () => setStep(s => Math.max(s - 1, 1));
+
   return (
-    <div className="booking-wrapper">
+    <div id="booking" className="booking-wrapper">
       <div className="steps-nav">
         {steps.map((s) => (
           <div key={s.id} className={`step-node ${step >= s.id ? 'active' : ''}`}>
@@ -123,7 +133,10 @@ export default function BookingSystem() {
             <h3 className="step-title">1. Select Service</h3>
             <div className="package-options">
               {packages.map((pkg) => (
-                <div key={pkg.id} className={`package-item ${bookingData.package === pkg.id ? 'selected' : ''}`} onClick={() => handlePackageSelect(pkg.id)}>
+                <div key={pkg.id} className={`package-item ${bookingData.package === pkg.id ? 'selected' : ''}`} onClick={() => {
+                  setBookingData({ ...bookingData, package: pkg.id });
+                  setStep(2);
+                }}>
                    <div className={`package-sticker ${pkg.cat.toLowerCase()}`}>
                      {pkg.cat}
                    </div>
@@ -142,7 +155,11 @@ export default function BookingSystem() {
             <h3 className="step-title">2. Schedule Your Visit</h3>
             <div className="booking-grid">
               <div className="calendar-col">
-                <Calendar onSelect={handleDateSelect} selectedDate={bookingData.date} busySlots={busySlots} />
+                <Calendar 
+                  selectedDate={bookingData.date}
+                  onSelect={(date) => setBookingData({ ...bookingData, date, time: '' })}
+                  busySlots={busySlots}
+                />
               </div>
               <div className="time-col">
                 <h4 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Select Arrival Window</h4>
@@ -153,7 +170,7 @@ export default function BookingSystem() {
                       <button 
                         key={slot} 
                         className={`time-chip ${bookingData.time === slot ? 'active' : ''} ${isBusy ? 'disabled' : ''}`}
-                        onClick={() => !isBusy && handleTimeSelect(slot)}
+                        onClick={() => !isBusy && setBookingData({ ...bookingData, time: slot })}
                         disabled={isBusy || !bookingData.date}
                         type="button"
                       >
@@ -164,7 +181,7 @@ export default function BookingSystem() {
                 </div>
                 
                 <button 
-                  onClick={nextStep} 
+                  onClick={() => setStep(3)} 
                   className="btn btn-primary" 
                   disabled={!bookingData.date || !bookingData.time}
                   style={{ width: '100%', marginTop: '3rem' }}
@@ -489,5 +506,13 @@ export default function BookingSystem() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function BookingSystem() {
+  return (
+    <Suspense fallback={<div className="text-center py-20">Loading Booking System...</div>}>
+      <BookingContent />
+    </Suspense>
   );
 }
