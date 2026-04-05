@@ -12,7 +12,9 @@ export async function GET() {
       .from('admin_settings')
       .select('*')
       .eq('key', 'google_auth_tokens')
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
     
     if (settingsError) throw new Error(`Supabase Error: ${settingsError.message}`);
     if (!setting) throw new Error("No tokens found in admin_settings table.");

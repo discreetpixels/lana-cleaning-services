@@ -7,9 +7,11 @@ export async function GET(request) {
     // FETCH PERSISTENT TOKENS FROM DATABASE
     const { data: setting, error: settingsError } = await supabaseAdmin
       .from('admin_settings')
-      .select('value')
+      .select('value, updated_at')
       .eq('key', 'google_auth_tokens')
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (settingsError || !setting) {
       console.error('Settings fetch error:', settingsError);

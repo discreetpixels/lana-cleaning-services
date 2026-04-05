@@ -36,12 +36,14 @@ export async function POST(request) {
     const durationHours = PACKAGE_DURATIONS[pkgId] || 4;
     const packageName = PACKAGE_NAMES[pkgId] || pkgId;
 
-    // 1. Google Calendar Integration - Fetch tokens from Supabase
-    const { data: setting } = await supabaseAdmin
+    // 1. Google Calendar Integration - Fetch tokens from Supabase (Get the LATEST one)
+    const { data: setting, error: settingsError } = await supabaseAdmin
       .from('admin_settings')
-      .select('value')
+      .select('value, updated_at')
       .eq('key', 'google_auth_tokens')
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (setting) {
       try {
