@@ -2,6 +2,25 @@ import { NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import nodemailer from 'nodemailer';
 import { cookies } from 'next/headers';
+import { supabaseAdmin } from '@/lib/supabase';
+
+const PACKAGE_DURATIONS = {
+  '2h':    2,
+  '4h':    4,
+  'reg':   3,
+  'deep':  6,
+  'off-e': 4,
+  'off-s': 3,
+};
+
+const PACKAGE_NAMES = {
+  '2h':    '2-Hour Quick Refresh',
+  '4h':    '4-Hour Essential Clean',
+  'reg':   'Regular Maintenance',
+  'deep':  'Deep Detailed Clean',
+  'off-e': 'Executive Office Clean',
+  'off-s': 'Studio/Creative Care',
+};
 
 export async function POST(request) {
   try {
@@ -11,12 +30,22 @@ export async function POST(request) {
     const cookieStore = await cookies();
     const tokensCookie = cookieStore.get('google_auth_tokens');
 
-    console.log("Processing formal booking for:", name, date, time);
+    console.log("Processing booking for:", name, date, time);
 
-    // 1. Google Calendar Integration
-    if (tokensCookie) {
+    let calendarEventId = null;
+    const durationHours = PACKAGE_DURATIONS[pkgId] || 4;
+    const packageName = PACKAGE_NAMES[pkgId] || pkgId;
+
+    // 1. Google Calendar Integration - Fetch tokens from Supabase
+    const { data: setting } = await supabaseAdmin
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'google_auth_tokens')
+      .single();
+
+    if (setting) {
       try {
-        const tokens = JSON.parse(tokensCookie.value);
+        const tokens = setting.value;
         const auth = new google.auth.OAuth2(
           process.env.GOOGLE_CLIENT_ID,
           process.env.GOOGLE_CLIENT_SECRET
@@ -25,26 +54,47 @@ export async function POST(request) {
         const calendar = google.calendar({ version: 'v3', auth });
 
         const startDateTime = new Date(`${date} ${time}`);
-        const endDateTime = new Date(startDateTime.getTime() + 4 * 60 * 60 * 1000); // 4h block
+        const endDateTime = new Date(startDateTime.getTime() + durationHours * 60 * 60 * 1000);
 
-        await calendar.events.insert({
+        const calEvent = await calendar.events.insert({
           calendarId: 'primary',
           requestBody: {
-            summary: `Lana Cleaning: ${pkgId} Reservation`,
+            summary: `Lana Cleaning: ${packageName}`,
             location: address,
-            description: `--- Lana Cleaning Services ---\nClient: ${name}\nPhone: ${phone}\nPackage: ${pkgId}\nAddress: ${address}\n\nThank you for choosing Lana.`,
+            description: `--- Lana Cleaning Services ---\nClient: ${name}\nPhone: ${phone}\nPackage: ${packageName}\nAddress: ${address}\n\nThank you for choosing Lana.`,
             start: { dateTime: startDateTime.toISOString() },
             end: { dateTime: endDateTime.toISOString() },
-            attendees: [{ email: email }],
+            attendees: [{ email }],
             reminders: { useDefault: true },
           },
         });
+
+        calendarEventId = calEvent.data.id;
       } catch (calError) {
         console.error("Google Calendar Sync Error:", calError);
       }
     }
 
-    // 2. Email Confirmation (Gmail SMTP)
+    // 2. Save to Supabase
+    const { data: booking, error: dbError } = await supabaseAdmin
+      .from('bookings')
+      .insert({
+        name, email, phone, package: pkgId,
+        date, time, address,
+        status: 'confirmed',
+        google_calendar_event_id: calendarEventId,
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error("Supabase insert error:", dbError);
+    }
+
+    const bookingId = booking?.id;
+    const manageUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/booking/${bookingId}`;
+
+    // 3. Email Confirmation (Gmail SMTP)
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: parseInt(process.env.EMAIL_PORT),
@@ -59,18 +109,27 @@ export async function POST(request) {
       <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1C1C1C; background-color: #FDFCF5; padding: 40px; border: 1px solid #E5E2D0;">
         <h1 style="font-size: 24px; border-bottom: 1px solid #E5E2D0; padding-bottom: 20px; font-weight: 900; letter-spacing: -0.05em;">LANA CLEANING SERVICES</h1>
         <p style="font-size: 16px; line-height: 1.6; margin-top: 30px;">Dear ${name},</p>
-        <p style="font-size: 16px; line-height: 1.6;">Your reservation for the <strong>${pkgId}</strong> has been secured. We are looking forward to bringing our personal touch to your space.</p>
+        <p style="font-size: 16px; line-height: 1.6;">Your reservation for <strong>${packageName}</strong> has been confirmed. We look forward to bringing our personal touch to your space.</p>
         
         <div style="background-color: #F7F6EF; padding: 30px; margin: 30px 0; border: 1px solid #E5E2D0;">
           <h3 style="margin-top: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; color: #2D5A27;">Appointment Details</h3>
           <p style="margin: 10px 0;"><strong>Date:</strong> ${date}</p>
           <p style="margin: 10px 0;"><strong>Arrival Time:</strong> ${time}</p>
+          <p style="margin: 10px 0;"><strong>Duration:</strong> ${durationHours} hours</p>
           <p style="margin: 10px 0;"><strong>Location:</strong> ${address}</p>
-          <p style="margin: 10px 0;"><strong>Payment:</strong> Pending (Invoice will follow)</p>
+          <p style="margin: 10px 0;"><strong>Reference #:</strong> ${bookingId?.slice(0, 8).toUpperCase() || 'N/A'}</p>
         </div>
 
-        <p style="font-size: 14px; color: #4A4A4A;">If you need to reschedule or have specific requests, please reply to this email or call us at (555) 123-4567.</p>
-        
+        ${bookingId ? `
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${manageUrl}" style="display: inline-block; background-color: #2D5A27; color: white; padding: 14px 32px; text-decoration: none; font-weight: 700; letter-spacing: 0.05em; font-size: 14px;">
+            MANAGE MY BOOKING
+          </a>
+          <p style="font-size: 12px; color: #888; margin-top: 10px;">Reschedule or cancel your appointment</p>
+        </div>
+        ` : ''}
+
+        <p style="font-size: 14px; color: #4A4A4A;">Questions? Reply to this email or call us directly.</p>
         <p style="margin-top: 40px; font-size: 16px;">Best regards,<br/><strong>The Lana Team</strong></p>
         
         <div style="margin-top: 60px; font-size: 12px; color: #AAA; text-align: center; border-top: 1px solid #EEE; padding-top: 20px;">
@@ -79,20 +138,19 @@ export async function POST(request) {
       </div>
     `;
 
-    // Attempt to send email
     try {
       await transporter.sendMail({
-        from: '"Lana Cleaning" <hello@lanacleaning.com>',
+        from: '"Lana Cleaning" <benarshy@gmail.com>',
         to: email,
         subject: `Reservation Confirmed: ${date} @ ${time}`,
         html: emailHtml,
       });
-      console.log("Confirmation email sent successfully.");
+      console.log("Confirmation email sent.");
     } catch (emailErr) {
-      console.error("Email Sending Error:", emailErr);
+      console.error("Email Error:", emailErr);
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, bookingId });
 
   } catch (error) {
     console.error("Booking API Error:", error);

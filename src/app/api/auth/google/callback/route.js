@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase';
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
@@ -23,8 +24,16 @@ export async function GET(request) {
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
     const userInfo = await oauth2.userinfo.get();
 
-    // Build the redirect response FIRST, then attach cookies to it
-    const response = NextResponse.redirect(new URL('/#booking', request.url));
+    // PERSIST TO DATABASE (Supabase) for shared system access
+    // We store the tokens as a single JSON object in the 'admin_settings' table
+    await supabaseAdmin.from('admin_settings').upsert({
+      key: 'google_auth_tokens',
+      value: tokens,
+      updated_at: new Date().toISOString()
+    });
+
+    // Build the redirect response - go back to backendcontrol
+    const response = NextResponse.redirect(new URL('/backendcontrol', request.url));
 
     const cookieOptions = {
       path: '/',
@@ -33,18 +42,16 @@ export async function GET(request) {
       secure: process.env.NODE_ENV === 'production',
     };
 
-    // Attach tokens (httpOnly - server-side only)
+    // Keep cookies for the admin UI state
     response.cookies.set('google_auth_tokens', JSON.stringify(tokens), {
       ...cookieOptions,
       httpOnly: true,
     });
-
-    // Attach user info (readable by browser JS)
     response.cookies.set('google_user', JSON.stringify(userInfo.data), cookieOptions);
 
     return response;
   } catch (error) {
     console.error('Google Auth Error:', error);
-    return NextResponse.redirect(new URL('/?error=auth_failed', request.url));
+    return NextResponse.redirect(new URL('/backendcontrol?error=auth_failed', request.url));
   }
 }
