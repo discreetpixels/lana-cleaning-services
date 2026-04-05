@@ -14,10 +14,10 @@ export default function Home() {
       category: "Personal"
     },
     {
-      title: "4-Hour Essential Clean",
-      duration: "4 Hours",
-      description: "Our most detailed signature service. A complete transformation of your sanctuary, covering all major rooms with a woman's touch.",
-      price: "$200",
+      title: "Move-Out Deep Clean",
+      duration: "6 - 8 Hours",
+      description: "A comprehensive, top-to-bottom transformation designed for transitions. We handle every surface to ensure your old or new home is immaculate.",
+      price: "$450",
       highlight: true,
       category: "Personal"
     },

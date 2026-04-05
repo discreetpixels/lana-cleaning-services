@@ -15,7 +15,7 @@ export default function ServiceCard({ title, duration, description, price, highl
           position: 'absolute', 
           top: '2rem', 
           right: '-2.5rem', 
-          backgroundColor: 'var(--accent-secondary)', 
+          backgroundColor: category?.toLowerCase() === 'office' ? 'var(--accent-secondary)' : 'var(--accent-primary)', 
           color: 'white', 
           padding: '0.5rem 3rem', 
           fontSize: '0.6rem', 

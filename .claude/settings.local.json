@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(~/.nvm/versions/node/v20.18.1/bin/node ~/.nvm/versions/node/v20.18.1/bin/npm run dev)"
+    ]
+  }
+}

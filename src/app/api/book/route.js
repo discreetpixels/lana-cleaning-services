@@ -5,21 +5,21 @@ import { cookies } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase';
 
 const PACKAGE_DURATIONS = {
-  '2h':    2,
-  '4h':    4,
-  'reg':   3,
-  'deep':  6,
-  'off-e': 4,
-  'off-s': 3,
+  '2h':       2,
+  'move-out': 8,
+  'reg':      3,
+  'deep':     6,
+  'off-e':    4,
+  'off-s':    3,
 };
 
 const PACKAGE_NAMES = {
-  '2h':    '2-Hour Quick Refresh',
-  '4h':    '4-Hour Essential Clean',
-  'reg':   'Regular Maintenance',
-  'deep':  'Deep Detailed Clean',
-  'off-e': 'Executive Office Clean',
-  'off-s': 'Studio/Creative Care',
+  '2h':       '2-Hour Quick Refresh',
+  'move-out': 'Move-Out Deep Clean',
+  'reg':      'Regular Maintenance',
+  'deep':     'Deep Detailed Clean',
+  'off-e':    'Executive Office Clean',
+  'off-s':    'Studio/Creative Care',
 };
 
 export async function POST(request) {
@@ -56,6 +56,7 @@ export async function POST(request) {
         const startDateTime = new Date(`${date} ${time}`);
         const endDateTime = new Date(startDateTime.getTime() + durationHours * 60 * 60 * 1000);
 
+        console.log("Preparing to insert calendar event for:", startDateTime.toISOString());
         const calEvent = await calendar.events.insert({
           calendarId: 'primary',
           requestBody: {
@@ -69,9 +70,14 @@ export async function POST(request) {
           },
         });
 
+        console.log("Calendar Event Created Successfully:", calEvent.data.id);
         calendarEventId = calEvent.data.id;
       } catch (calError) {
-        console.error("Google Calendar Sync Error:", calError);
+        console.error("Google Calendar Sync Error Details:", {
+          message: calError.message,
+          errors: calError.errors,
+          code: calError.code
+        });
       }
     }
 

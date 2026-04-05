@@ -6,7 +6,7 @@ import { CheckCircle2, Calendar, Clock, MapPin, Package, XCircle, RefreshCw, Arr
 
 const PACKAGE_NAMES = {
   '2h': '2-Hour Quick Refresh',
-  '4h': '4-Hour Essential Clean',
+  'move-out': 'Move-Out Deep Clean',
   'reg': 'Regular Maintenance',
   'deep': 'Deep Detailed Clean',
   'off-e': 'Executive Office Clean',
