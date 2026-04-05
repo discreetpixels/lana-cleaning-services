@@ -46,25 +46,50 @@ export async function POST(request) {
     if (setting) {
       try {
         const tokens = setting.value;
+        console.log("Tokens retrieved. Has refresh_token:", !!tokens.refresh_token);
+
         const auth = new google.auth.OAuth2(
           process.env.GOOGLE_CLIENT_ID,
-          process.env.GOOGLE_CLIENT_SECRET
+          process.env.GOOGLE_CLIENT_SECRET,
+          process.env.GOOGLE_REDIRECT_URI
         );
         auth.setCredentials(tokens);
+
+        // Listen for token refreshes and save back to Supabase
+        auth.on('tokens', async (newTokens) => {
+          console.log("Access token refreshed. Saving to Supabase...");
+          await supabaseAdmin.from('admin_settings').upsert({
+            key: 'google_auth_tokens',
+            value: { ...tokens, ...newTokens },
+            updated_at: new Date().toISOString()
+          });
+        });
+
         const calendar = google.calendar({ version: 'v3', auth });
 
         const startDateTime = new Date(`${date} ${time}`);
         const endDateTime = new Date(startDateTime.getTime() + durationHours * 60 * 60 * 1000);
 
-        console.log("Preparing to insert calendar event for:", startDateTime.toISOString());
+        console.log("Attempting to insert calendar event:", {
+          start: startDateTime.toISOString(),
+          end: endDateTime.toISOString(),
+          package: packageName
+        });
+
         const calEvent = await calendar.events.insert({
           calendarId: 'primary',
           requestBody: {
             summary: `Lana Cleaning: ${packageName}`,
             location: address,
             description: `--- Lana Cleaning Services ---\nClient: ${name}\nPhone: ${phone}\nPackage: ${packageName}\nAddress: ${address}\n\nThank you for choosing Lana.`,
-            start: { dateTime: startDateTime.toISOString() },
-            end: { dateTime: endDateTime.toISOString() },
+            start: { 
+              dateTime: startDateTime.toISOString(),
+              timeZone: 'America/Los_Angeles' // Defaulting to California time for now
+            },
+            end: { 
+              dateTime: endDateTime.toISOString(),
+              timeZone: 'America/Los_Angeles'
+            },
             attendees: [{ email }],
             reminders: { useDefault: true },
           },
@@ -76,9 +101,12 @@ export async function POST(request) {
         console.error("Google Calendar Sync Error Details:", {
           message: calError.message,
           errors: calError.errors,
-          code: calError.code
+          code: calError.code,
+          stack: calError.stack
         });
       }
+    } else {
+      console.warn("No Google Auth tokens found in admin_settings table.");
     }
 
     // 2. Save to Supabase
