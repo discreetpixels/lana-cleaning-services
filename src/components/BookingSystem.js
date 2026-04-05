@@ -102,6 +102,21 @@ export default function BookingSystem() {
         ))}
       </div>
 
+      {bookingData.package && step > 1 && step < 4 && (
+        <div className="booking-summary-bar animate-in">
+          <div className="summary-info">
+            <span className="summary-label">Selected Package</span>
+            <h4 className="summary-value">
+              {packages.find(p => p.id === bookingData.package)?.name}
+            </h4>
+          </div>
+          <div className="summary-price">
+            <span className="summary-label">Estimated Price</span>
+            <div className="price-value">${packages.find(p => p.id === bookingData.package)?.price}</div>
+          </div>
+        </div>
+      )}
+
       <div className="step-panel">
         {step === 1 && (
           <div className="animate-in">
@@ -403,6 +418,43 @@ export default function BookingSystem() {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        .booking-summary-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.5rem 4rem;
+          background: #FDFCF5;
+          border-bottom: 1px solid var(--border);
+          animation: slideDown 0.4s ease-out;
+        }
+        .summary-label {
+          display: block;
+          font-size: 0.6rem;
+          text-transform: uppercase;
+          letter-spacing: 0.15em;
+          color: var(--text-secondary);
+          margin-bottom: 0.25rem;
+          font-weight: 800;
+        }
+        .summary-value {
+          margin: 0;
+          font-size: 1.25rem;
+          font-family: var(--font-serif);
+          color: var(--accent-primary);
+        }
+        .summary-price {
+          text-align: right;
+        }
+        .price-value {
+          font-size: 1.5rem;
+          font-weight: 800;
+          color: var(--accent-primary);
+          font-family: var(--font-serif);
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         @media (max-width: 768px) {
           .booking-grid, .form-row {
             grid-template-columns: 1fr;
@@ -410,6 +462,8 @@ export default function BookingSystem() {
           .step-panel { padding: 2rem; }
           .steps-nav { padding: 1.5rem; }
           .node-label { display: none; }
+          .booking-summary-bar { padding: 1.5rem 2rem; flex-direction: column; align-items: flex-start; gap: 1rem; }
+          .summary-price { text-align: left; }
         }
       `}</style>
     </div>
