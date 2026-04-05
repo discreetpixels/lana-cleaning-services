@@ -28,8 +28,8 @@ export default function BookingSystem() {
 
   const packages = [
     { id: '2h', name: '2-Hour Quick Refresh', price: 95, cat: 'Personal' },
-    { id: '4h', name: '4-Hour Essential Clean', price: 200, cat: 'Personal' },
     { id: 'reg', name: 'Regular Maintenance', price: 160, cat: 'Personal' },
+    { id: 'move-out', name: 'Move-Out Deep Clean', price: 450, cat: 'Personal' },
     { id: 'deep', name: 'Deep Detailed Clean', price: 350, cat: 'Personal' },
     { id: 'off-e', name: 'Executive Office Clean', price: 250, cat: 'Office' },
     { id: 'off-s', name: 'Studio/Creative Care', price: 180, cat: 'Office' },
@@ -124,8 +124,10 @@ export default function BookingSystem() {
             <div className="package-options">
               {packages.map((pkg) => (
                 <div key={pkg.id} className={`package-item ${bookingData.package === pkg.id ? 'selected' : ''}`} onClick={() => handlePackageSelect(pkg.id)}>
-                   <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                     <span className="pkg-cat">{pkg.cat}</span>
+                   <div className={`package-sticker ${pkg.cat.toLowerCase()}`}>
+                     {pkg.cat}
+                   </div>
+                   <div className="package-info">
                      <h4>{pkg.name}</h4>
                    </div>
                    <div className="pkg-price">${pkg.price}</div>
@@ -285,6 +287,13 @@ export default function BookingSystem() {
         }
         .step-panel {
           padding: 4rem;
+          background: #fff;
+        }
+        .package-options {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+          margin-top: 1rem;
         }
         .step-title {
           font-size: 2rem;
@@ -292,40 +301,53 @@ export default function BookingSystem() {
           border-bottom: 1px solid var(--border);
           padding-bottom: 1rem;
         }
-        .package-options {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 1.5rem;
-        }
         .package-item {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 2rem 3rem;
+          padding: 2.25rem 3rem;
           border: 1px solid var(--border);
           cursor: pointer;
           transition: var(--transition);
+          position: relative;
+          background: #FFFFFF;
         }
         .package-item:hover, .package-item.selected {
           border-color: var(--accent-primary);
           background: var(--bg-secondary);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-        .pkg-cat {
-          font-size: 0.6rem;
+        .package-sticker {
+          position: absolute;
+          top: 0;
+          left: 3rem;
+          transform: translateY(-50%);
+          padding: 4px 10px;
+          font-size: 0.55rem;
           text-transform: uppercase;
-          letter-spacing: 0.2em;
-          color: var(--accent-primary);
+          letter-spacing: 0.15em;
           font-weight: 900;
+          background: var(--accent-primary);
+          color: white;
+        }
+        .package-sticker.personal {
+          background: var(--accent-primary);
+        }
+        .package-sticker.office {
+          background: #8B735B; /* Bronze/Muted Gold */
         }
         .package-item h4 {
           margin: 0;
-          font-size: 1.25rem;
+          font-size: 1.2rem;
           font-family: var(--font-sans);
+          font-weight: 700;
         }
         .pkg-price {
           font-family: var(--font-serif);
           font-size: 1.5rem;
           font-weight: 700;
+          color: var(--accent-primary);
         }
         .booking-grid {
           display: grid;
