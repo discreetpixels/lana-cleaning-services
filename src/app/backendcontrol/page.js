@@ -428,6 +428,7 @@ export default function AdminDashboard() {
                 onReschedule={openReschedule}
                 actionLoading={actionLoading}
                 showActions={activeTab !== 'cancelled'}
+                showReschedule={activeTab === 'upcoming'}
                 selected={selected}
                 onToggle={toggleSelect}
                 onToggleAll={toggleSelectAll}
@@ -441,7 +442,7 @@ export default function AdminDashboard() {
   );
 }
 
-function BookingsTable({ bookings, onCancel, onReschedule, actionLoading, showActions, selected, onToggle, onToggleAll }) {
+function BookingsTable({ bookings, onCancel, onReschedule, actionLoading, showActions, showReschedule, selected, onToggle, onToggleAll }) {
   const ids = bookings.map(b => b.id);
   const allChecked = ids.length > 0 && ids.every(id => selected.has(id));
   return (
@@ -494,12 +495,14 @@ function BookingsTable({ bookings, onCancel, onReschedule, actionLoading, showAc
             <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
               {showActions && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  <button
-                    onClick={() => onReschedule(b)}
-                    style={{ background: b.proposed_date ? '#fffbeb' : '#eff6ff', border: `1px solid ${b.proposed_date ? '#fcd34d' : '#93c5fd'}`, color: b.proposed_date ? '#92400e' : '#1e40af', padding: '0.3rem 0.5rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
-                  >
-                    {b.proposed_date ? 'Resend Proposal' : 'Reschedule'}
-                  </button>
+                  {showReschedule && (
+                    <button
+                      onClick={() => onReschedule(b)}
+                      style={{ background: b.proposed_date ? '#fffbeb' : '#eff6ff', border: `1px solid ${b.proposed_date ? '#fcd34d' : '#93c5fd'}`, color: b.proposed_date ? '#92400e' : '#1e40af', padding: '0.3rem 0.5rem', cursor: 'pointer', fontSize: '0.72rem', fontWeight: 700 }}
+                    >
+                      {b.proposed_date ? 'Resend Proposal' : 'Reschedule'}
+                    </button>
+                  )}
                   <button
                     onClick={() => onCancel(b.id)}
                     disabled={actionLoading === b.id + '-cancel'}
@@ -554,7 +557,7 @@ function CustomersTable({ customers, onDelete, actionLoading, selected, onToggle
               <td style={{ ...tdStyle, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</td>
               <td style={tdStyle}>
                 <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#555', fontSize: '0.82rem' }}>{c.email}</div>
-                <div style={{ color: '#888', fontSize: '0.78rem' }}>{c.phone}</div>
+                <div style={{ color: '#333', fontSize: '0.82rem', fontWeight: 600, marginTop: '2px' }}>{c.phone}</div>
               </td>
               <td style={{ ...tdStyle, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#666', fontSize: '0.8rem' }} title={c.address}>{c.address}</td>
               <td style={tdStyle}>
